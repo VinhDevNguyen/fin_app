@@ -142,7 +142,8 @@ Thumbs.db
 token.json
 *.pdf
 downloads/
-.pytest_cache/ 
+.pytest_cache/
+processed_statements/
 
 # Ignore credentials
 credentials.json

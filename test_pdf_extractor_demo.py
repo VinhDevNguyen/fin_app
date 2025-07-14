@@ -25,14 +25,29 @@ def test_pdf_extraction():
     settings = Settings(pdf_engine="pymupdf")
     extractor = make_pdf_extractor(settings)
     
-    for pdf_file in pdf_files[:2]:  # Test first 2 files
+    for pdf_file in pdf_files[:3]:  # Test first 3 files
         print(f"\n📄 Processing: {pdf_file.name}")
         
         try:
             pdf_bytes = pdf_file.read_bytes()
-            text = extractor.extract(pdf_bytes)
             
-            print(f"✅ Extracted {len(text)} characters")
+            # # Try extracting without password first
+            # try:
+            #     text = extractor.extract(pdf_bytes)
+            #     print(f"✅ Extracted {len(text)} characters (no password needed)")
+            # except Exception as e:
+            #     # If extraction fails, it might be password-protected
+            #     print(f"⚠️  Initial extraction failed: {e}")
+            #     print("🔑 PDF might be password-protected. You can add password support here.")
+            #     continue
+
+            # Try extracting with password
+            try:
+                text = extractor.extract(pdf_bytes, password="05074248")
+                print(f"✅ Extracted {len(text)} characters (with password)")
+            except Exception as e:
+                print(f"❌ Failed to extract with password: {e}")
+            
             print(f"📝 First 200 chars: {text[:200]!r}")
             
             # Look for Vietnamese banking terms

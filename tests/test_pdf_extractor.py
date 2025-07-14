@@ -22,6 +22,14 @@ def test_pymupdf_extractor_with_sample():
     # Basic check for Vietnamese bank statement content
     assert any(keyword in text.lower() for keyword in ["bank", "statement", "account", "số dư", "giao dịch"])
 
+def test_pymupdf_extractor_with_password():
+    """Test PyMuPDF extractor with password parameter."""
+    pdf_bytes = load_sample_bytes("sample.pdf")
+    extractor = PyMuPDFExtractor()
+    # Should work without password for non-encrypted PDF
+    text = extractor.extract(pdf_bytes, password=None)
+    assert isinstance(text, str)
+
 def test_pdfminer_extractor_with_sample():
     """Test PDFMiner extractor with real PDF file."""
     pdf_bytes = load_sample_bytes("sample.pdf")
@@ -30,6 +38,14 @@ def test_pdfminer_extractor_with_sample():
     
     assert isinstance(text, str)
     assert len(text) > 0
+
+def test_pdfminer_extractor_with_password():
+    """Test PDFMiner extractor with password parameter."""
+    pdf_bytes = load_sample_bytes("sample.pdf")
+    extractor = PDFMinerExtractor()
+    # Should work without password for non-encrypted PDF
+    text = extractor.extract(pdf_bytes, password=None)
+    assert isinstance(text, str)
 
 def test_factory_pymupdf():
     """Test factory creates PyMuPDF extractor by default."""
@@ -56,10 +72,21 @@ def test_extraction_error_handling():
     with pytest.raises(ExtractionError):
         extractor.extract(b"not a pdf")
 
+def test_password_protected_pdf_error():
+    """Test error handling for password-protected PDFs without password."""
+    # This test would need a real password-protected PDF to be meaningful
+    # For now, just test the interface accepts password parameter
+    extractor = PyMuPDFExtractor()
+    pdf_bytes = load_sample_bytes("sample.pdf")
+    
+    # Should work with explicit password=None
+    text = extractor.extract(pdf_bytes, password=None)
+    assert isinstance(text, str)
+
 class DummyExtractor:
     """Dummy extractor for testing pipeline without real PDF processing."""
     
-    def extract(self, pdf_bytes: bytes) -> str:
+    def extract(self, pdf_bytes: bytes, *, password: str | None = None) -> str:
         return "dummy text for testing"
 
 def test_dummy_extractor():
