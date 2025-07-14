@@ -27,6 +27,14 @@ class AppSettings(BaseSettings):
     # Logging settings
     log_level: str = Field(validation_alias="LOG_LEVEL")
     
+    # LLM settings
+    llm_provider: Literal["openai", "gemini"] = Field(validation_alias="LLM_PROVIDER")
+    llm_api_key: str = Field(validation_alias="LLM_API_KEY")
+    llm_model: str = Field(validation_alias="LLM_MODEL")
+    llm_temperature: float = Field(validation_alias="LLM_TEMPERATURE")
+    llm_output_dir: str = Field(validation_alias="LLM_OUTPUT_DIR")
+    llm_prompt_id: str = Field(validation_alias="LLM_PROMPT_ID")
+    
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8"

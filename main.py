@@ -16,6 +16,7 @@ from typing import List
 from infrastructure.gdrive.google_drive_gateway import GoogleDriveGateway
 from infrastructure.gdrive.drive_gateway import DriveFile
 from services.factory import Settings, make_pdf_extractor
+from infrastructure.llm import LLMFactory
 from config import app_settings
 
 # Configure logging
@@ -36,9 +37,14 @@ class StatementProcessor:
         (self.output_dir / "pdfs").mkdir(exist_ok=True)
         (self.output_dir / "texts").mkdir(exist_ok=True)
         
+        # LLM output directory
+        self.llm_output_dir = Path(app_settings.llm_output_dir)
+        self.llm_output_dir.mkdir(exist_ok=True)
+        
         # Initialize components
         self.drive_gateway = self._init_drive_gateway()
         self.pdf_extractor = self._init_pdf_extractor()
+        self.llm_provider = self._init_llm_provider()
     
     def _init_drive_gateway(self) -> GoogleDriveGateway:
         """Initialize Google Drive gateway."""
@@ -63,6 +69,16 @@ class StatementProcessor:
         """Initialize PDF extractor."""
         settings = Settings(pdf_engine=app_settings.pdf_engine)
         return make_pdf_extractor(settings)
+    
+    def _init_llm_provider(self):
+        """Initialize LLM provider."""
+        logger.info(f"🤖 Initializing LLM provider: {app_settings.llm_provider}")
+        return LLMFactory.create_provider(
+            provider_type=app_settings.llm_provider,
+            api_key=app_settings.llm_api_key,
+            model=app_settings.llm_model,
+            temperature=app_settings.llm_temperature
+        )
     
     def find_target_folder(self) -> DriveFile:
         """Find the target folder in Google Drive."""
@@ -139,8 +155,30 @@ class StatementProcessor:
         logger.info(f"💾 Saved text: {text_path}")
         return text_path
     
+    def process_with_llm(self, text: str, file_name: str) -> Path:
+        """Process text with LLM to extract structured transaction data."""
+        # Create JSON filename (replace .pdf with .json)
+        json_filename = file_name.replace('.pdf', '.json')
+        json_path = self.llm_output_dir / json_filename
+        
+        logger.info(f"🤖 Processing with LLM: {file_name}")
+        
+        try:
+            # Process text with LLM using prompt ID from config
+            self.llm_provider.process_text_file(
+                text_content=text,
+                system_prompt_or_id=app_settings.llm_prompt_id,
+                output_path=json_path,
+                use_prompt_library=True
+            )
+            logger.info(f"✅ LLM processing complete: {json_path}")
+            return json_path
+        except Exception as e:
+            logger.error(f"❌ LLM processing failed for {file_name}: {e}")
+            raise
+    
     def process_file(self, file: DriveFile) -> dict:
-        """Process a single file: download -> extract -> save."""
+        """Process a single file: download -> extract -> save -> LLM."""
         logger.info(f"\n🔄 Processing: {file.name}")
         
         result = {
@@ -150,6 +188,7 @@ class StatementProcessor:
             "error": None,
             "pdf_path": None,
             "text_path": None,
+            "json_path": None,
             "text_length": 0
         }
         
@@ -165,6 +204,10 @@ class StatementProcessor:
             # Save text
             text_path = self.save_text(text, file.name)
             result["text_path"] = str(text_path)
+            
+            # Process with LLM
+            json_path = self.process_with_llm(text, file.name)
+            result["json_path"] = str(json_path)
             
             result["success"] = True
             logger.info(f"✅ Successfully processed: {file.name}")
