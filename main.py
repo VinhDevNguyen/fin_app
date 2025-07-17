@@ -157,6 +157,16 @@ class StatementProcessor:
             return text
         
         logger.info(f"📄 Extracting text from: {file_name}")
+
+        text_filename = file_name.replace('.pdf', '.txt')
+        text_path = self.output_dir / "texts" / text_filename
+        
+        # Check if text file already exists
+        if text_path.exists():
+            logger.info(f"⏭️  Skipping extraction: {file_name} (text already exists)")
+            text = text_path.read_text(encoding='utf-8')
+            logger.info(f"✅ Loaded existing text: {len(text)} characters from {text_filename}")
+            return text
         
         try:
             pdf_bytes = pdf_path.read_bytes()

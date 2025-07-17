@@ -3,7 +3,7 @@ import logging
 import os
 from google import genai
 from google.genai import types
-from .base import LLMProvider
+from .base import LLMProvider, TransactionHistory
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ class GeminiProvider(LLMProvider):
     def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:
         """Create prompt structure for Gemini."""
         # Gemini doesn't have explicit system/user roles, so we combine them
-        combined_prompt = f"{system_prompt}\n\nText to process:\n{user_content}"
+        combined_prompt = f"{system_prompt}\n\nTransaction Contents Text:\n{user_content}"
         return {"prompt": combined_prompt}
     
     def send_prompt(self, prompt: Dict[str, Any]) -> str:
@@ -33,10 +33,11 @@ class GeminiProvider(LLMProvider):
                 contents=prompt["prompt"],
                 config=types.GenerateContentConfig(
                     temperature=self.temperature,
-                    response_mime_type="application/json"  # Force JSON response
+                    response_mime_type="application/json",  # Force JSON response
+                    response_schema=TransactionHistory
                 )
             )
-            return response.text
+            return response.parsed.transactions
         except Exception as e:
             logger.error(f"Error calling Gemini API: {str(e)}")
             raise
