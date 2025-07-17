@@ -2,9 +2,15 @@ from typing import Optional
 from .base import LLMProvider
 from .openai_provider import OpenAIProvider
 from .gemini_provider import GeminiProvider
+from .langfuse_wrapper import LangfuseWrapper
 
 class LLMFactory:
     """Factory class for creating LLM providers."""
+    
+    @staticmethod
+    def initialize_langfuse(secret_key: Optional[str] = None, public_key: Optional[str] = None, host: Optional[str] = None):
+        """Initialize Langfuse if credentials are provided."""
+        LangfuseWrapper.initialize(secret_key, public_key, host)
     
     @staticmethod
     def create_provider(

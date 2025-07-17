@@ -63,6 +63,8 @@ class StatementProcessor:
                 app_settings.gdrive_token
             )
         else:
+            if not app_settings.gdrive_sa_key:
+                raise ValueError("Service account key path is required when using service account authentication")
             return GoogleDriveGateway.from_service_account(app_settings.gdrive_sa_key)
     
     def _init_pdf_extractor(self):
@@ -73,6 +75,16 @@ class StatementProcessor:
     def _init_llm_provider(self):
         """Initialize LLM provider."""
         logger.info(f"🤖 Initializing LLM provider: {app_settings.llm_provider}")
+        
+        # Initialize Langfuse if credentials are provided
+        if app_settings.langfuse_secret_key and app_settings.langfuse_public_key:
+            logger.info("🔍 Initializing Langfuse for LLM observability")
+            LLMFactory.initialize_langfuse(
+                secret_key=app_settings.langfuse_secret_key,
+                public_key=app_settings.langfuse_public_key,
+                host=app_settings.langfuse_host
+            )
+        
         return LLMFactory.create_provider(
             provider_type=app_settings.llm_provider,
             api_key=app_settings.llm_api_key,
@@ -133,6 +145,17 @@ class StatementProcessor:
     
     def extract_text(self, pdf_path: Path, file_name: str) -> str:
         """Extract text from a PDF file."""
+        # Create text filename (replace .pdf with .txt)
+        text_filename = file_name.replace('.pdf', '.txt')
+        text_path = self.output_dir / "texts" / text_filename
+        
+        # Check if text file already exists
+        if text_path.exists():
+            logger.info(f"⏭️  Skipping extraction: {file_name} (text already exists)")
+            text = text_path.read_text(encoding='utf-8')
+            logger.info(f"✅ Loaded existing text: {len(text)} characters from {text_filename}")
+            return text
+        
         logger.info(f"📄 Extracting text from: {file_name}")
         
         try:
@@ -286,11 +309,19 @@ def main():
         if summary["successful"] > 0:
             logger.info(f"\n🎉 Successfully processed {summary['successful']} files!")
         
+        # Flush Langfuse to ensure all traces are sent
+        from infrastructure.llm.langfuse_wrapper import LangfuseWrapper
+        LangfuseWrapper.flush()
+        
         return summary
         
     except Exception as e:
         logger.error(f"❌ Application failed: {e}")
         raise
+    finally:
+        # Always flush Langfuse on exit
+        from infrastructure.llm.langfuse_wrapper import LangfuseWrapper
+        LangfuseWrapper.flush()
 
 if __name__ == "__main__":
     main()

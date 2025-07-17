@@ -16,6 +16,7 @@ dependencies = [
     "pdfminer.six",
     "openai>=1.0.0",
     "google-genai>=0.1.0",
+    "langfuse==3.2.1",
 ]
 requires-python = ">=3.8"
 

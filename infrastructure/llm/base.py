@@ -4,11 +4,17 @@ import json
 from pathlib import Path
 import logging
 from .prompt_manager import PromptManager
+from .langfuse_wrapper import LangfuseWrapper
 
 logger = logging.getLogger(__name__)
 
 class LLMProvider(ABC):
     """Base class for LLM providers."""
+    
+    def __init__(self):
+        self.provider_name = "unknown"
+        self.model = "unknown"
+        self.temperature = 0.0
     
     @abstractmethod
     def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:
@@ -19,6 +25,48 @@ class LLMProvider(ABC):
     def send_prompt(self, prompt: Dict[str, Any]) -> str:
         """Send prompt to LLM and get response."""
         pass
+    
+    def _send_prompt_with_tracing(self, prompt: Dict[str, Any], trace_name: str) -> str:
+        """Wrapper method to add Langfuse tracing to prompt sending."""
+        if LangfuseWrapper.is_initialized():
+            langfuse = LangfuseWrapper.get_instance()
+            
+            # Use context manager for span and generation
+            with langfuse.start_as_current_span(
+                name=trace_name,
+                metadata={
+                    "provider": self.provider_name,
+                    "model": self.model,
+                    "temperature": self.temperature
+                }
+            ) as span:
+                with langfuse.start_as_current_generation(
+                    name=f"{self.provider_name}_completion",
+                    model=self.model,
+                    input=prompt,
+                    model_parameters={
+                        "temperature": self.temperature,
+                        "response_format": "json_object"
+                    }
+                ) as generation:
+                    try:
+                        # Call the actual send_prompt method
+                        response = self.send_prompt(prompt)
+                        
+                        # Update the generation with the output
+                        generation.update(output=response)
+                        
+                        return response
+                    except Exception as e:
+                        # Log the error to Langfuse
+                        generation.update(
+                            level="ERROR",
+                            status_message=str(e)
+                        )
+                        raise
+        else:
+            # If Langfuse is not initialized, just call the method directly
+            return self.send_prompt(prompt)
     
     def extract_json_from_response(self, response: str) -> Dict[str, Any]:
         """Extract JSON from LLM response."""
@@ -69,7 +117,11 @@ class LLMProvider(ABC):
             system_prompt = system_prompt_or_id
             
         prompt = self.create_prompt(system_prompt, text_content)
-        response = self.send_prompt(prompt)
+        
+        # Use the tracing wrapper for the LLM call
+        trace_name = f"process_file_{output_path.name}"
+        response = self._send_prompt_with_tracing(prompt, trace_name)
+        
         result = self.extract_json_from_response(response)
         self.save_result(result, output_path)
         return result

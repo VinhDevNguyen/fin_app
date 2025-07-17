@@ -35,6 +35,11 @@ class AppSettings(BaseSettings):
     llm_output_dir: str = Field(validation_alias="LLM_OUTPUT_DIR")
     llm_prompt_id: str = Field(validation_alias="LLM_PROMPT_ID")
     
+    # Langfuse settings
+    langfuse_secret_key: str | None = Field(None, validation_alias="LANGFUSE_SECRET_KEY")
+    langfuse_public_key: str | None = Field(None, validation_alias="LANGFUSE_PUBLIC_KEY")
+    langfuse_host: str | None = Field(None, validation_alias="LANGFUSE_HOST")
+    
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8"
