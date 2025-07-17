@@ -9,9 +9,11 @@ class OpenAIProvider(LLMProvider):
     """OpenAI LLM provider implementation."""
     
     def __init__(self, api_key: str, model: str = "gpt-4o-mini", temperature: float = 0.0):
+        super().__init__()
         self.client = OpenAI(api_key=api_key)
         self.model = model
         self.temperature = temperature
+        self.provider_name = "openai"
         logger.info(f"Initialized OpenAI provider with model: {model}")
     
     def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:

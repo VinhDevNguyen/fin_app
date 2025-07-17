@@ -11,10 +11,12 @@ class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation."""
     
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0):
+        super().__init__()
         # Initialize client with API key
         self.client = genai.Client(api_key=api_key)
         self.model = model
         self.temperature = temperature
+        self.provider_name = "gemini"
         logger.info(f"Initialized Gemini provider with model: {model}")
     
     def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:
