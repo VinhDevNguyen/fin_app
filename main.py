@@ -158,6 +158,13 @@ class StatementProcessor:
         
         logger.info(f"📄 Extracting text from: {file_name}")
         
+        # Check if text file already exists
+        if text_path.exists():
+            logger.info(f"⏭️  Skipping extraction: {file_name} (text already exists)")
+            text = text_path.read_text(encoding='utf-8')
+            logger.info(f"✅ Loaded existing text: {len(text)} characters from {text_filename}")
+            return text
+        
         try:
             pdf_bytes = pdf_path.read_bytes()
             text = self.pdf_extractor.extract(pdf_bytes, password=app_settings.pdf_password)

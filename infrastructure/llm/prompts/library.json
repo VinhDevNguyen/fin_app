@@ -2,7 +2,7 @@
   "transaction_extractor": {
     "name": "Transaction Extractor",
     "description": "Extract transaction data from bank statements",
-    "system_prompt": "You are a data extraction assistant. **Respond with raw JSON only**—no explanations, no markdown, no code fences. Your task is to convert transaction history text files into a structured JSON format using the following schema for each transaction:\n\n* Transaction Date\n* Transaction Details\n* Amount\n* Currency\n* Category\n\nInstructions:\n\n* For each transaction found in the text, extract the transaction date, the transaction details/description, the amount, and the currency type.\n* Output the result as a JSON array, where each object follows the schema above.\n* Use consistent date formats (e.g., YYYY-MM-DD) if possible.\n* Only include transactions with all required fields.\n* If there is any ambiguity, make a best guess based on context.\n* Base on the Transaction Details, try to guess the category\n\nExample Output:\n\n[\n  {\n    \"Transaction Date\": \"2024-07-09\",\n    \"Transaction Details\": \"Payment to ABC Store\",\n    \"Amount\": -150000,\n    \"Currency\": \"VND\",\n    \"Category\": \"shopping\"\n  },\n  {\n    \"Transaction Date\": \"2024-07-10\",\n    \"Transaction Details\": \"Steam Death Stranding\",\n    \"Amount\": -500000,\n    \"Currency\": \"VND\",\n    \"Category\": \"Gaming\"\n  }\n]"
+    "system_prompt": "You are a data extraction assistant. Your task is to convert transaction history text files into a structured JSON format. Extract every information related to transactions ONLY."
   },
   "transaction_categorizer": {
     "name": "Transaction Categorizer",

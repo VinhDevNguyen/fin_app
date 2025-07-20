@@ -1,12 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, Literal, List
 import json
 from pathlib import Path
+from pydantic import BaseModel, Field
 import logging
+from datetime import datetime
 from .prompt_manager import PromptManager
 from .langfuse_wrapper import LangfuseWrapper
 
 logger = logging.getLogger(__name__)
+class TransactionEntry(BaseModel):
+    transaction_date: datetime
+    transaction_detail: str
+    amount: str
+    currency: str
+    category: Literal["Income", "Housing", "Transportation", "Food & Dining", "Personal Care & Health", "Entertainment & Lifestyle", "Education & Development", "Debt & Loans", "Children/Dependents", "Miscellaneous/Other"]
+    service_subscription: Optional[str] = Field(default = None, description = "Services like Netflix, Spotify, ...")
+    receiver_name: Optional[str]
+
+class TransactionHistory(BaseModel):
+    transactions: List[TransactionEntry]
 
 class LLMProvider(ABC):
     """Base class for LLM providers."""
@@ -68,25 +81,43 @@ class LLMProvider(ABC):
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt)
     
-    def extract_json_from_response(self, response: str) -> Dict[str, Any]:
+    def extract_json_from_response(self, response: list[TransactionEntry]) -> Dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
-            # Try to parse the response directly as JSON
-            return json.loads(response)
-        except json.JSONDecodeError:
-            # If direct parsing fails, try to find JSON in the response
-            import re
-            json_pattern = r'\[[\s\S]*\]'
-            match = re.search(json_pattern, response)
-            if match:
-                try:
-                    return json.loads(match.group())
-                except json.JSONDecodeError:
-                    logger.error(f"Failed to parse JSON from response: {response}")
-                    raise ValueError("Could not extract valid JSON from response")
-            else:
-                logger.error(f"No JSON found in response: {response}")
-                raise ValueError("No JSON found in response")
+            output = []
+            for transaction in response:
+                output.append({
+                    "transaction_date": transaction.transaction_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "transaction_detail": transaction.transaction_detail,
+                    "amount": transaction.amount,
+                    "currency": transaction.currency,
+                    "category": transaction.category,
+                    "receiver": transaction.receiver_name,
+                    "service_subscription": transaction.service_subscription
+                })
+            return {
+                "transactions": output
+            }
+        except:
+            logger.error(f"No JSON found in response: {response}")
+            raise ValueError("No JSON found in response")
+        # try:
+        #     # Try to parse the response directly as JSON
+        #     return json.loads(response)
+        # except json.JSONDecodeError:
+        #     # If direct parsing fails, try to find JSON in the response
+        #     import re
+        #     json_pattern = r'\[[\s\S]*\]'
+        #     match = re.search(json_pattern, response)
+        #     if match:
+        #         try:
+        #             return json.loads(match.group())
+        #         except json.JSONDecodeError:
+        #             logger.error(f"Failed to parse JSON from response: {response}")
+        #             raise ValueError("Could not extract valid JSON from response")
+        #     else:
+        #         logger.error(f"No JSON found in response: {response}")
+        #         raise ValueError("No JSON found in response")
     
     def save_result(self, result: Dict[str, Any], output_path: Path) -> None:
         """Save result to file."""
