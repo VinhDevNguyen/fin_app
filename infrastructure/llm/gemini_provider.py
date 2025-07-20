@@ -3,7 +3,7 @@ import logging
 import os
 from google import genai
 from google.genai import types
-from .base import LLMProvider, TransactionHistory
+from .base import LLMProvider, TransactionHistory, TransactionEntry
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class GeminiProvider(LLMProvider):
         combined_prompt = f"{system_prompt}\n\nTransaction Contents Text:\n{user_content}"
         return {"prompt": combined_prompt}
     
-    def send_prompt(self, prompt: Dict[str, Any]) -> str:
+    def send_prompt(self, prompt: Dict[str, Any]) -> list[TransactionEntry]:
         """Send prompt to Gemini and get response."""
         try:
             response = self.client.models.generate_content(

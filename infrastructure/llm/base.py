@@ -15,7 +15,7 @@ class TransactionEntry(BaseModel):
     amount: str
     currency: str
     category: Literal["Income", "Housing", "Transportation", "Food & Dining", "Personal Care & Health", "Entertainment & Lifestyle", "Education & Development", "Debt & Loans", "Children/Dependents", "Miscellaneous/Other"]
-    service_subscription: Optional[str] = Field(..., description = "Services like Netflix, Spotify, ...")
+    service_subscription: Optional[str] = Field(default = None, description = "Services like Netflix, Spotify, ...")
     receiver_name: Optional[str]
 
 class TransactionHistory(BaseModel):
@@ -81,7 +81,7 @@ class LLMProvider(ABC):
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt)
     
-    def extract_json_from_response(self, response: str) -> Dict[str, Any]:
+    def extract_json_from_response(self, response: list[TransactionEntry]) -> Dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
             output = []
