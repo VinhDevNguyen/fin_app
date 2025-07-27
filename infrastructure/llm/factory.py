@@ -7,6 +7,7 @@ from .langfuse_wrapper import LangfuseWrapper
 from .openai_provider import OpenAIProvider
 
 
+
 class LLMFactory:
     """Factory class for creating LLM providers."""
 
@@ -15,7 +16,7 @@ class LLMFactory:
         secret_key: Optional[str] = None,
         public_key: Optional[str] = None,
         host: Optional[str] = None,
-    ) -> None:
+    ):
         """Initialize Langfuse if credentials are provided."""
         LangfuseWrapper.initialize(secret_key, public_key, host)
 
@@ -46,10 +47,11 @@ class LLMFactory:
                 base_url=base_url,
                 api_key=api_key,
                 model=model or "gpt-4o-mini",
-                temperature=temperature
+                temperature=temperature,
             )
         elif provider_type.lower() == "gemini":
             return GeminiProvider(
+                base_url=base_url,
                 api_key=api_key,
                 model=model or "gemini-2.5-flash",
                 temperature=temperature,

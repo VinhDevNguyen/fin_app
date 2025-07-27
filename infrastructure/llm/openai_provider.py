@@ -35,7 +35,7 @@ class OpenAICompatibleProvider(LLMProvider):
             ]
         }
 
-    def send_prompt(self, prompt: Dict[str, Any], output_format = None) -> TransactionHistory:
+    def send_prompt(self, prompt: Dict[str, Any], output_format = TransactionHistory) -> TransactionHistory:
         """Send prompt to OpenAI and get response."""
         try:
             response = self.client.responses.parse(

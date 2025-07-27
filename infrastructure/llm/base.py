@@ -30,8 +30,8 @@ class LLMProvider(ABC):
     def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> str:
         """Send prompt to LLM and get response."""
         pass
-
-    def _send_prompt_with_tracing(self, prompt: dict[str, Any], trace_name: str) -> str:
+    
+    def _send_prompt_with_tracing(self, prompt: Dict[str, Any], trace_name: str, output_format: BaseModel) -> str:
         """Wrapper method to add Langfuse tracing to prompt sending."""
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
@@ -56,7 +56,7 @@ class LLMProvider(ABC):
                 ) as generation:
                     try:
                         # Call the actual send_prompt method
-                        response = self.send_prompt(prompt, output_format = TransactionHistory)
+                        response = self.send_prompt(prompt, output_format)
                         
                         # Update the generation with the output
                         generation.update(output=response)
@@ -179,8 +179,8 @@ class LLMProvider(ABC):
 
         # Use the tracing wrapper for the LLM call
         trace_name = f"process_file_{output_path.name}"
-        response = self._send_prompt_with_tracing(prompt, trace_name)
-
+        response = self._send_prompt_with_tracing(prompt, trace_name, TransactionHistory)
+        
         result = self.extract_json_from_response(response)
         self.save_result(result, output_path)
         return result
