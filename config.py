@@ -28,6 +28,7 @@ class AppSettings(BaseSettings):
     log_level: str = Field(validation_alias="LOG_LEVEL")
     
     # LLM settings
+    llm_base_url: str = Field(validation_alias="LLM_BASE_URL")
     llm_provider: Literal["openai", "gemini"] = Field(validation_alias="LLM_PROVIDER")
     llm_api_key: str = Field(validation_alias="LLM_API_KEY")
     llm_model: str = Field(validation_alias="LLM_MODEL")

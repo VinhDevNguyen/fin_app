@@ -7,24 +7,15 @@ import logging
 from datetime import datetime
 from .prompt_manager import PromptManager
 from .langfuse_wrapper import LangfuseWrapper
+from .pydantic_models.transactions import TransactionHistory, TransactionEntry
 
 logger = logging.getLogger(__name__)
-class TransactionEntry(BaseModel):
-    transaction_date: datetime
-    transaction_detail: str
-    amount: str
-    currency: str
-    category: Literal["Income", "Housing", "Transportation", "Food & Dining", "Personal Care & Health", "Entertainment & Lifestyle", "Education & Development", "Debt & Loans", "Children/Dependents", "Miscellaneous/Other"]
-    service_subscription: Optional[str] = Field(default = None, description = "Services like Netflix, Spotify, ...")
-    receiver_name: Optional[str]
-
-class TransactionHistory(BaseModel):
-    transactions: List[TransactionEntry]
 
 class LLMProvider(ABC):
     """Base class for LLM providers."""
     
     def __init__(self):
+        self.base_url = None
         self.provider_name = "unknown"
         self.model = "unknown"
         self.temperature = 0.0
@@ -35,7 +26,7 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    def send_prompt(self, prompt: Dict[str, Any]) -> str:
+    def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> str:
         """Send prompt to LLM and get response."""
         pass
     
@@ -64,7 +55,7 @@ class LLMProvider(ABC):
                 ) as generation:
                     try:
                         # Call the actual send_prompt method
-                        response = self.send_prompt(prompt)
+                        response = self.send_prompt(prompt, output_format = TransactionHistory)
                         
                         # Update the generation with the output
                         generation.update(output=response)

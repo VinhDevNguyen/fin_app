@@ -25,7 +25,7 @@ class GeminiProvider(LLMProvider):
         combined_prompt = f"{system_prompt}\n\nTransaction Contents Text:\n{user_content}"
         return {"prompt": combined_prompt}
     
-    def send_prompt(self, prompt: Dict[str, Any]) -> list[TransactionEntry]:
+    def send_prompt(self, prompt: Dict[str, Any], output_format = None) -> list[TransactionEntry]:
         """Send prompt to Gemini and get response."""
         try:
             response = self.client.models.generate_content(
@@ -34,7 +34,7 @@ class GeminiProvider(LLMProvider):
                 config=types.GenerateContentConfig(
                     temperature=self.temperature,
                     response_mime_type="application/json",  # Force JSON response
-                    response_schema=TransactionHistory
+                    response_schema=output_format
                 )
             )
             return response.parsed.transactions
