@@ -3,14 +3,14 @@ import logging
 import os
 from google import genai
 from google.genai import types
-from .base import LLMProvider, TransactionHistory, TransactionEntry
+from .base import LLMProvider, TransactionHistory
 
 logger = logging.getLogger(__name__)
 
 class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation."""
     
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0):
+    def __init__(self, base_url: str | None, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0):
         super().__init__()
         # Initialize client with API key
         self.client = genai.Client(api_key=api_key)
@@ -25,7 +25,7 @@ class GeminiProvider(LLMProvider):
         combined_prompt = f"{system_prompt}\n\nTransaction Contents Text:\n{user_content}"
         return {"prompt": combined_prompt}
     
-    def send_prompt(self, prompt: Dict[str, Any], output_format = None) -> list[TransactionEntry]:
+    def send_prompt(self, prompt: Dict[str, Any], output_format = TransactionHistory) -> TransactionHistory:
         """Send prompt to Gemini and get response."""
         try:
             response = self.client.models.generate_content(
