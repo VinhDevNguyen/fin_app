@@ -1,6 +1,7 @@
 from typing import Optional
 
 from .base import LLMProvider
+from .openai_provider import OpenAICompatibleProvider
 from .gemini_provider import GeminiProvider
 from .langfuse_wrapper import LangfuseWrapper
 from .openai_provider import OpenAIProvider
@@ -20,6 +21,7 @@ class LLMFactory:
 
     @staticmethod
     def create_provider(
+        base_url: str,
         provider_type: str,
         api_key: str,
         model: Optional[str] = None,
@@ -40,8 +42,11 @@ class LLMFactory:
             ValueError: If provider type is not supported
         """
         if provider_type.lower() == "openai":
-            return OpenAIProvider(
-                api_key=api_key, model=model or "gpt-4o-mini", temperature=temperature
+            return OpenAICompatibleProvider(
+                base_url=base_url,
+                api_key=api_key,
+                model=model or "gpt-4o-mini",
+                temperature=temperature
             )
         elif provider_type.lower() == "gemini":
             return GeminiProvider(

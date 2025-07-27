@@ -8,42 +8,15 @@ from typing import Any, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 from .langfuse_wrapper import LangfuseWrapper
-from .prompt_manager import PromptManager
+from .pydantic_models.transactions import TransactionHistory, TransactionEntry
 
 logger = logging.getLogger(__name__)
 
-
-class TransactionEntry(BaseModel):
-    transaction_date: datetime
-    transaction_detail: str
-    amount: str
-    currency: str
-    category: Literal[
-        "Income",
-        "Housing",
-        "Transportation",
-        "Food & Dining",
-        "Personal Care & Health",
-        "Entertainment & Lifestyle",
-        "Education & Development",
-        "Debt & Loans",
-        "Children/Dependents",
-        "Miscellaneous/Other",
-    ]
-    service_subscription: Optional[str] = Field(
-        default=None, description="Services like Netflix, Spotify, ..."
-    )
-    receiver_name: Optional[str]
-
-
-class TransactionHistory(BaseModel):
-    transactions: list[TransactionEntry]
-
-
 class LLMProvider(ABC):
     """Base class for LLM providers."""
-
-    def __init__(self) -> None:
+    
+    def __init__(self):
+        self.base_url = None
         self.provider_name = "unknown"
         self.model = "unknown"
         self.temperature = 0.0
@@ -54,7 +27,7 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def send_prompt(self, prompt: dict[str, Any]) -> str:
+    def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> str:
         """Send prompt to LLM and get response."""
         pass
 
@@ -62,41 +35,40 @@ class LLMProvider(ABC):
         """Wrapper method to add Langfuse tracing to prompt sending."""
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
-
-            if langfuse is not None:
-                # Use context manager for span and generation
-                with langfuse.start_as_current_span(
-                    name=trace_name,
-                    metadata={
-                        "provider": self.provider_name,
-                        "model": self.model,
-                        "temperature": str(self.temperature),
-                    },
-                ) as _:
-                    with langfuse.start_as_current_generation(
-                        name=f"{self.provider_name}_completion",
-                        model=self.model,
-                        input=prompt,
-                        model_parameters={
-                            "temperature": str(self.temperature),
-                            "response_format": "json_object",
-                        },
-                    ) as generation:
-                        try:
-                            # Call the actual send_prompt method
-                            response = self.send_prompt(prompt)
-
-                            # Update the generation with the output
-                            generation.update(output=response)
-
-                            return response
-                        except Exception as e:
-                            # Log the error to Langfuse
-                            generation.update(level="ERROR", status_message=str(e))
-                            raise
-            else:
-                # If langfuse instance is None, just call the method directly
-                return self.send_prompt(prompt)
+            
+            # Use context manager for span and generation
+            with langfuse.start_as_current_span(
+                name=trace_name,
+                metadata={
+                    "provider": self.provider_name,
+                    "model": self.model,
+                    "temperature": self.temperature
+                }
+            ) as span:
+                with langfuse.start_as_current_generation(
+                    name=f"{self.provider_name}_completion",
+                    model=self.model,
+                    input=prompt,
+                    model_parameters={
+                        "temperature": self.temperature,
+                        "response_format": "json_object"
+                    }
+                ) as generation:
+                    try:
+                        # Call the actual send_prompt method
+                        response = self.send_prompt(prompt, output_format = TransactionHistory)
+                        
+                        # Update the generation with the output
+                        generation.update(output=response)
+                        
+                        return response
+                    except Exception as e:
+                        # Log the error to Langfuse
+                        generation.update(
+                            level="ERROR",
+                            status_message=str(e)
+                        )
+                        raise
         else:
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt)
