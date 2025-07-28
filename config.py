@@ -21,7 +21,7 @@ class AppSettings(BaseSettings):
     target_folder_name: str = Field(validation_alias="TARGET_FOLDER_NAME")
 
     # PDF processing settings
-    pdf_engine: Literal["pymupdf", "pdfminer"] = Field(validation_alias="PDF_ENGINE")
+    pdf_engine: Literal["pymupdf", "pdfminer", "docling"] = Field(validation_alias="PDF_ENGINE")
     pdf_password: str | None = Field(None, validation_alias="PDF_PASSWORD")
 
     # Output settings

@@ -22,7 +22,7 @@ class LLMFactory:
 
     @staticmethod
     def create_provider(
-        base_url: str,
+        base_url: Optional[str],
         provider_type: str,
         api_key: str,
         model: Optional[str] = None,

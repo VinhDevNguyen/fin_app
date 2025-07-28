@@ -76,57 +76,23 @@ class LLMProvider(ABC):
     def extract_json_from_response(self, response: TransactionHistory) -> Dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
-            # If response is already a list of TransactionEntry objects
-            if isinstance(response, list) and all(
-                isinstance(item, TransactionEntry) for item in response
-            ):
-                output = []
-                for transaction in response:
-                    output.append(
-                        {
-                            "transaction_date": transaction.transaction_date.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "transaction_detail": transaction.transaction_detail,
-                            "amount": transaction.amount,
-                            "currency": transaction.currency,
-                            "category": transaction.category,
-                            "receiver": transaction.receiver_name,
-                            "service_subscription": transaction.service_subscription,
-                        }
-                    )
-                return {"transactions": output}
-            # If response is a string, try to parse it as JSON
-            elif isinstance(response, str):
-                try:
-                    # Try to parse the response directly as JSON
-                    result: Any = json.loads(response)
-                    return dict(result)
-                except json.JSONDecodeError:
-                    # If direct parsing fails, try to find JSON in the response
-                    import re
-
-                    json_pattern = r"\[[\s\S]*\]"
-                    match = re.search(json_pattern, response)
-                    if match:
-                        try:
-                            match_result: Any = json.loads(match.group())
-                            return dict(match_result)
-                        except json.JSONDecodeError as e:
-                            logger.error(
-                                f"Failed to parse JSON from response: {response}"
-                            )
-                            raise ValueError(
-                                "Could not extract valid JSON from response"
-                            ) from e
-                    else:
-                        logger.error(f"No JSON found in response: {response}")
-                        raise ValueError("No JSON found in response") from None
-            else:
-                raise ValueError(f"Unsupported response type: {type(response)}")
-        except Exception as e:
-            logger.error(f"Error processing response: {response}")
-            raise ValueError("Error processing response") from e
+            output = []
+            for transaction in response.transactions:
+                output.append({
+                    "transaction_date": transaction.transaction_date.strftime("%Y-%m-%d %H:%M:%S"),
+                    "transaction_detail": transaction.transaction_detail,
+                    "amount": transaction.amount,
+                    "currency": transaction.currency,
+                    "category": transaction.category,
+                    "receiver": transaction.receiver_name,
+                    "service_subscription": transaction.service_subscription
+                })
+            return {
+                "transactions": output
+            }
+        except:
+            logger.error(f"No JSON found in response: {response}")
+            raise ValueError("No JSON found in response")
         # try:
         #     # Try to parse the response directly as JSON
         #     return json.loads(response)
