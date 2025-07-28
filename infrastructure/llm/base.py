@@ -26,7 +26,7 @@ class LLMProvider(ABC):
         pass
     
     @abstractmethod
-    def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> str:
+    def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> TransactionHistory:
         """Send prompt to LLM and get response."""
         pass
     
@@ -70,9 +70,9 @@ class LLMProvider(ABC):
                         raise
         else:
             # If Langfuse is not initialized, just call the method directly
-            return self.send_prompt(prompt)
+            return self.send_prompt(prompt, output_format)
     
-    def extract_json_from_response(self, response: list[TransactionEntry]) -> Dict[str, Any]:
+    def extract_json_from_response(self, response: TransactionHistory) -> Dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
             output = []

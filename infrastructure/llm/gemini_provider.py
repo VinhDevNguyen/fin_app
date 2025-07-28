@@ -3,7 +3,8 @@ import logging
 import os
 from google import genai
 from google.genai import types
-from .base import LLMProvider, TransactionHistory
+from .base import LLMProvider
+from .pydantic_models.transactions import TransactionHistory
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ class GeminiProvider(LLMProvider):
     
     def __init__(self, base_url: str | None, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0):
         super().__init__()
-        # Initialize client with API key
+        self.base_url = base_url or None
         self.client = genai.Client(api_key=api_key)
         self.model = model
         self.temperature = temperature
