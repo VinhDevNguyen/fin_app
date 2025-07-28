@@ -4,10 +4,10 @@ from pydantic import BaseModel
 from services.pdf_extractor import PDFExtractor
 from infrastructure.pdf_extractor.pymupdf_extractor import PyMuPDFExtractor
 from infrastructure.pdf_extractor.pdfminer_extractor import PDFMinerExtractor
-
+from infrastructure.pdf_extractor.docling_extractor import DoclingExtractor
 class Settings(BaseModel):
     """Settings for PDF extraction engine selection."""
-    pdf_engine: Literal["pymupdf", "pdfminer"] = "pymupdf"
+    pdf_engine: Literal["pymupdf", "pdfminer", "docling"] = "pymupdf"
 
 def make_pdf_extractor(settings: Settings) -> PDFExtractor:
     """Factory function to create PDF extractor based on settings."""
@@ -15,4 +15,6 @@ def make_pdf_extractor(settings: Settings) -> PDFExtractor:
         return PyMuPDFExtractor()
     if settings.pdf_engine == "pdfminer":
         return PDFMinerExtractor()
+    if settings.pdf_engine == "docling":
+        return DoclingExtractor()
     raise ValueError(f"Unsupported pdf_engine={settings.pdf_engine}")

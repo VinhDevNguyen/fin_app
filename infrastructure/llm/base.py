@@ -76,7 +76,7 @@ class LLMProvider(ABC):
         """Extract JSON from LLM response."""
         try:
             output = []
-            for transaction in response:
+            for transaction in response.transactions:
                 output.append({
                     "transaction_date": transaction.transaction_date.strftime("%Y-%m-%d %H:%M:%S"),
                     "transaction_detail": transaction.transaction_detail,
