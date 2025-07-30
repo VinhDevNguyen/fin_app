@@ -1,9 +1,11 @@
 from pathlib import Path
-from google_auth_oauthlib.flow import InstalledAppFlow
+
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 
 SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
+
 
 def get_oauth_creds(creds_path: Path, token_path: Path) -> Credentials:
     creds: Credentials | None = None

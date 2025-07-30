@@ -1,25 +1,31 @@
 from __future__ import annotations
+
 import logging
 from io import BytesIO
+
 from pdfminer.high_level import extract_text
+
 from services.pdf_extractor import PDFExtractor
 
 logger = logging.getLogger(__name__)
 
+
 class ExtractionError(Exception):
     """Custom domain error for PDF extraction failures."""
+
     pass
+
 
 class PDFMinerExtractor(PDFExtractor):
     """Pure Python PDF text extraction using pdfminer.six."""
-    
+
     def extract(self, pdf_bytes: bytes, *, password: str | None = None) -> str:
         """Extract plain text from PDF bytes using pdfminer.
-        
+
         Args:
             pdf_bytes: PDF file content as bytes
             password: Optional password for encrypted PDFs
-            
+
         Returns:
             Extracted text content
         """
