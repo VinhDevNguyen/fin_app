@@ -147,3 +147,6 @@ processed_statements/
 
 # Ignore credentials
 credentials.json
+
+# Ignore uv lock file
+uv.lock

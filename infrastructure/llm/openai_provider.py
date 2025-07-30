@@ -12,13 +12,17 @@ class OpenAICompatibleProvider(LLMProvider):
 
     def __init__(
         self,
-        base_url: str,
+        base_url: str | None,
         api_key: str,
         model: str = "gpt-4o-mini",
         temperature: float = 0.0,
     ):
         super().__init__()
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        # Only pass base_url if it's not None
+        if base_url:
+            self.client = OpenAI(api_key=api_key, base_url=base_url)
+        else:
+            self.client = OpenAI(api_key=api_key)
         self.model = model
         self.temperature = temperature
         self.provider_name = "openai"
