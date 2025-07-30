@@ -24,7 +24,7 @@ class GoogleDriveGateway(DriveGateway):
 
     @classmethod
     def from_oauth(
-        cls, creds_path: str = "credentials.json", token_path: str = "token.json"
+        cls, creds_path: str = "credentials.json", token_path: str = "token.json"  # nosec B107
     ) -> GoogleDriveGateway:
         creds = oauth.get_oauth_creds(Path(creds_path), Path(token_path))
         return cls(creds)
