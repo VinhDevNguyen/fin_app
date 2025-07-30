@@ -3,7 +3,7 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, Union
 
 from pydantic import BaseModel, Field
 
@@ -43,7 +43,7 @@ class TransactionHistory(BaseModel):
 class LLMProvider(ABC):
     """Base class for LLM providers."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.provider_name = "unknown"
         self.model = "unknown"
         self.temperature = 0.0
@@ -63,64 +63,100 @@ class LLMProvider(ABC):
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
 
-            # Use context manager for span and generation
-            with langfuse.start_as_current_span(
-                name=trace_name,
-                metadata={
-                    "provider": self.provider_name,
-                    "model": self.model,
-                    "temperature": self.temperature,
-                },
-            ) as span:
-                with langfuse.start_as_current_generation(
-                    name=f"{self.provider_name}_completion",
-                    model=self.model,
-                    input=prompt,
-                    model_parameters={
-                        "temperature": self.temperature,
-                        "response_format": "json_object",
+            if langfuse is not None:
+                # Use context manager for span and generation
+                with langfuse.start_as_current_span(
+                    name=trace_name,
+                    metadata={
+                        "provider": self.provider_name,
+                        "model": self.model,
+                        "temperature": str(self.temperature),
                     },
-                ) as generation:
-                    try:
-                        # Call the actual send_prompt method
-                        response = self.send_prompt(prompt)
+                ) as _:
+                    with langfuse.start_as_current_generation(
+                        name=f"{self.provider_name}_completion",
+                        model=self.model,
+                        input=prompt,
+                        model_parameters={
+                            "temperature": str(self.temperature),
+                            "response_format": "json_object",
+                        },
+                    ) as generation:
+                        try:
+                            # Call the actual send_prompt method
+                            response = self.send_prompt(prompt)
 
-                        # Update the generation with the output
-                        generation.update(output=response)
+                            # Update the generation with the output
+                            generation.update(output=response)
 
-                        return response
-                    except Exception as e:
-                        # Log the error to Langfuse
-                        generation.update(level="ERROR", status_message=str(e))
-                        raise
+                            return response
+                        except Exception as e:
+                            # Log the error to Langfuse
+                            generation.update(level="ERROR", status_message=str(e))
+                            raise
+            else:
+                # If langfuse instance is None, just call the method directly
+                return self.send_prompt(prompt)
         else:
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt)
 
     def extract_json_from_response(
-        self, response: list[TransactionEntry]
+        self, response: Union[str, list[TransactionEntry]]
     ) -> dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
-            output = []
-            for transaction in response:
-                output.append(
-                    {
-                        "transaction_date": transaction.transaction_date.strftime(
-                            "%Y-%m-%d %H:%M:%S"
-                        ),
-                        "transaction_detail": transaction.transaction_detail,
-                        "amount": transaction.amount,
-                        "currency": transaction.currency,
-                        "category": transaction.category,
-                        "receiver": transaction.receiver_name,
-                        "service_subscription": transaction.service_subscription,
-                    }
-                )
-            return {"transactions": output}
-        except:
-            logger.error(f"No JSON found in response: {response}")
-            raise ValueError("No JSON found in response")
+            # If response is already a list of TransactionEntry objects
+            if isinstance(response, list) and all(
+                isinstance(item, TransactionEntry) for item in response
+            ):
+                output = []
+                for transaction in response:
+                    output.append(
+                        {
+                            "transaction_date": transaction.transaction_date.strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "transaction_detail": transaction.transaction_detail,
+                            "amount": transaction.amount,
+                            "currency": transaction.currency,
+                            "category": transaction.category,
+                            "receiver": transaction.receiver_name,
+                            "service_subscription": transaction.service_subscription,
+                        }
+                    )
+                return {"transactions": output}
+            # If response is a string, try to parse it as JSON
+            elif isinstance(response, str):
+                try:
+                    # Try to parse the response directly as JSON
+                    result: Any = json.loads(response)
+                    return dict(result)
+                except json.JSONDecodeError:
+                    # If direct parsing fails, try to find JSON in the response
+                    import re
+
+                    json_pattern = r"\[[\s\S]*\]"
+                    match = re.search(json_pattern, response)
+                    if match:
+                        try:
+                            match_result: Any = json.loads(match.group())
+                            return dict(match_result)
+                        except json.JSONDecodeError as e:
+                            logger.error(
+                                f"Failed to parse JSON from response: {response}"
+                            )
+                            raise ValueError(
+                                "Could not extract valid JSON from response"
+                            ) from e
+                    else:
+                        logger.error(f"No JSON found in response: {response}")
+                        raise ValueError("No JSON found in response") from None
+            else:
+                raise ValueError(f"Unsupported response type: {type(response)}")
+        except Exception as e:
+            logger.error(f"Error processing response: {response}")
+            raise ValueError("Error processing response") from e
         # try:
         #     # Try to parse the response directly as JSON
         #     return json.loads(response)

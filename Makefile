@@ -28,9 +28,6 @@ test: ## Run tests
 test-cov: ## Run tests with coverage
 	uv run pytest --cov=services --cov=infrastructure --cov-report=term-missing --cov-report=html
 
-test-integration: ## Run integration tests
-	uv run python -m pytest test_*.py -v
-
 security: ## Run security checks
 	uv run safety check
 	uv run bandit -r services/ infrastructure/

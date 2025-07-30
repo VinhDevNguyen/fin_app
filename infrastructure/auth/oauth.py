@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -8,7 +9,7 @@ SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
 
 
 def get_oauth_creds(creds_path: Path, token_path: Path) -> Credentials:
-    creds: Credentials | None = None
+    creds: Union[Credentials, None] = None
     if token_path.exists():
         creds = Credentials.from_authorized_user_file(token_path, SCOPES)
     if not creds or not creds.valid:

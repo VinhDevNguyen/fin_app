@@ -14,7 +14,7 @@ class LLMFactory:
         secret_key: Optional[str] = None,
         public_key: Optional[str] = None,
         host: Optional[str] = None,
-    ):
+    ) -> None:
         """Initialize Langfuse if credentials are provided."""
         LangfuseWrapper.initialize(secret_key, public_key, host)
 

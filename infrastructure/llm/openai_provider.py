@@ -39,7 +39,10 @@ class OpenAIProvider(LLMProvider):
                 temperature=self.temperature,
                 response_format={"type": "json_object"},  # Force JSON response
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if content is None:
+                raise ValueError("OpenAI returned empty response")
+            return content
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
             raise

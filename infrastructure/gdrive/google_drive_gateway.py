@@ -3,6 +3,8 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
+from google.oauth2.credentials import Credentials
+from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
@@ -11,18 +13,26 @@ from .drive_gateway import DriveFile, DriveGateway
 
 
 class GoogleDriveGateway(DriveGateway):
-    def __init__(self, credentials, cache_discovery=False):
+    def __init__(
+        self,
+        credentials: Credentials | ServiceAccountCredentials,
+        cache_discovery: bool = False,
+    ) -> None:
         self.service = build(
             "drive", "v3", credentials=credentials, cache_discovery=cache_discovery
         )
 
     @classmethod
-    def from_oauth(cls, creds_path="credentials.json", token_path="token.json"):
+    def from_oauth(
+        cls, creds_path: str = "credentials.json", token_path: str = "token.json"
+    ) -> GoogleDriveGateway:
         creds = oauth.get_oauth_creds(Path(creds_path), Path(token_path))
         return cls(creds)
 
     @classmethod
-    def from_service_account(cls, key_path="sa.json", scopes=None):
+    def from_service_account(
+        cls, key_path: str = "sa.json", scopes: list[str] | None = None
+    ) -> GoogleDriveGateway:
         scopes = scopes or ["https://www.googleapis.com/auth/drive.readonly"]
         creds = service_account.get_service_account_creds(key_path, scopes)
         return cls(creds)

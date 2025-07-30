@@ -1,7 +1,7 @@
 import json
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,8 @@ class PromptManager:
         """Load prompts from the library file."""
         try:
             with open(self.library_path, encoding="utf-8") as f:
-                return json.load(f)
+                data: Any = json.load(f)
+                return dict(data)
         except FileNotFoundError:
             logger.error(f"Prompt library not found at {self.library_path}")
             return {}
@@ -41,7 +42,7 @@ class PromptManager:
             raise ValueError(f"Prompt '{prompt_id}' not found in library")
         return self.prompts[prompt_id]
 
-    def list_prompts(self) -> dict[str, str]:
+    def list_prompts(self) -> dict[str, dict[str, str]]:
         """List all available prompts with their names and descriptions."""
         return {
             prompt_id: {
