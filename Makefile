@@ -29,7 +29,7 @@ test-cov: ## Run tests with coverage
 	uv run pytest --cov=services --cov=infrastructure --cov-report=term-missing --cov-report=html
 
 security: ## Run security checks
-	uv run safety check
+	uv run safety scan --detailed-output
 	uv run bandit -r services/ infrastructure/
 
 build: ## Build the package
