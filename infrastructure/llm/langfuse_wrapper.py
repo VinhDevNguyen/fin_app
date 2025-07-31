@@ -50,21 +50,21 @@ class LangfuseWrapper:
     @classmethod
     def trace_llm_call(
         cls, name: str, metadata: Optional[dict[str, Any]] = None
-    ) -> Callable:
+    ) -> Any:
         """Decorator to trace LLM calls with Langfuse."""
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             if not cls._initialized:
                 return func
 
             @wraps(func)
-            @observe(name=name, capture_input=True, capture_output=True)
+            @observe(name=name, capture_input=True, capture_output=True)  # type: ignore[misc]
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 if metadata and cls._instance:
                     cls._instance.update_current_trace(metadata=metadata)
                 return func(*args, **kwargs)
 
-            return wrapper
+            return wrapper  # type: ignore[no-any-return]
 
         return decorator
 

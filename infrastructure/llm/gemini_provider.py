@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, Union
 
 from google import genai
 from google.genai import types
@@ -15,13 +15,13 @@ class GeminiProvider(LLMProvider):
 
     def __init__(
         self,
-        base_url: str | None,
+        base_url: Union[str, None],
         api_key: str,
         model: str = "gemini-2.5-flash",
         temperature: float = 0.0,
     ):
         super().__init__()
-        self.base_url = base_url or None
+        self.base_url = base_url
         self.client = genai.Client(api_key=api_key)
         self.model = model
         self.temperature = temperature
@@ -37,7 +37,9 @@ class GeminiProvider(LLMProvider):
         return {"prompt": combined_prompt}
 
     def send_prompt(
-        self, prompt: dict[str, Any], output_format=TransactionHistory
+        self,
+        prompt: dict[str, Any],
+        output_format: type[TransactionHistory] = TransactionHistory,
     ) -> TransactionHistory:
         """Send prompt to Gemini and get response."""
         try:
@@ -50,30 +52,13 @@ class GeminiProvider(LLMProvider):
                     response_schema=output_format,
                 ),
             )
-            # Convert the parsed response to JSON string to match base class interface
+            # Return the parsed response directly as TransactionHistory
             if response.parsed and hasattr(response.parsed, "transactions"):
-                import json
-
-                result = {
-                    "transactions": [
-                        {
-                            "transaction_date": t.transaction_date.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "transaction_detail": t.transaction_detail,
-                            "amount": t.amount,
-                            "currency": t.currency,
-                            "category": t.category,
-                            "receiver_name": t.receiver_name,
-                            "service_subscription": t.service_subscription,
-                        }
-                        for t in response.parsed.transactions
-                    ]
-                }
-                return json.dumps(result)
+                result: TransactionHistory = response.parsed
+                return result
             else:
-                # Fallback to text response if parsing fails
-                return response.text or ""
+                # Fallback: create empty TransactionHistory if parsing fails
+                return TransactionHistory(transactions=[])
         except Exception as e:
             logger.error(f"Error calling Gemini API: {str(e)}")
             raise

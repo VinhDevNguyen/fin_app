@@ -22,7 +22,7 @@ class ExtractionError(Exception):
 class DoclingExtractor(PDFExtractor):
     """Docling text extraction using detection and OCR models"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.pipeline_options = PdfPipelineOptions()
         self.pipeline_options.do_ocr = True
         self.pipeline_options.do_table_structure = True
@@ -75,7 +75,7 @@ class DoclingExtractor(PDFExtractor):
             buf = BytesIO(decrypted)
             stream = DocumentStream(name="file.pdf", stream=buf)
             result = converter.convert(stream).document
-            text = result.export_to_markdown()
+            text: str = result.export_to_markdown()
 
             return text
 

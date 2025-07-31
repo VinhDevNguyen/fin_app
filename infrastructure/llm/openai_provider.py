@@ -26,7 +26,7 @@ class OpenAICompatibleProvider(LLMProvider):
         self.provider_name = "openai"
         logger.info(f"Initialized OpenAICompatible provider with model: {model}")
 
-    def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:
+    def create_prompt(self, system_prompt: str, user_content: str) -> dict[str, Any]:
         """Create prompt structure for OpenAI."""
         return {
             "messages": [
@@ -36,7 +36,9 @@ class OpenAICompatibleProvider(LLMProvider):
         }
 
     def send_prompt(
-        self, prompt: Dict[str, Any], output_format=TransactionHistory
+        self,
+        prompt: dict[str, Any],
+        output_format: type[TransactionHistory] = TransactionHistory,
     ) -> TransactionHistory:
         """Send prompt to OpenAI and get response."""
         try:
@@ -46,7 +48,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 temperature=self.temperature,
                 text_format=output_format,
             )
-            return response.output_parsed
+            result: TransactionHistory = response.output_parsed
+            return result
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")
             raise

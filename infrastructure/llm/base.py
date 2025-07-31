@@ -2,9 +2,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel
+from typing import Any, Optional
 
 from .langfuse_wrapper import LangfuseWrapper
 from .prompt_manager import PromptManager
@@ -16,8 +14,8 @@ logger = logging.getLogger(__name__)
 class LLMProvider(ABC):
     """Base class for LLM providers."""
 
-    def __init__(self):
-        self.base_url = None
+    def __init__(self) -> None:
+        self.base_url: Optional[str] = None
         self.provider_name = "unknown"
         self.model = "unknown"
         self.temperature = 0.0
@@ -29,17 +27,24 @@ class LLMProvider(ABC):
 
     @abstractmethod
     def send_prompt(
-        self, prompt: dict[str, Any], output_format: BaseModel
+        self,
+        prompt: dict[str, Any],
+        output_format: type[TransactionHistory] = TransactionHistory,
     ) -> TransactionHistory:
         """Send prompt to LLM and get response."""
         pass
 
     def _send_prompt_with_tracing(
-        self, prompt: dict[str, Any], trace_name: str, output_format: BaseModel
-    ) -> str:
+        self,
+        prompt: dict[str, Any],
+        trace_name: str,
+        output_format: type[TransactionHistory] = TransactionHistory,
+    ) -> TransactionHistory:
         """Wrapper method to add Langfuse tracing to prompt sending."""
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
+            if langfuse is None:
+                return self.send_prompt(prompt, output_format)
 
             # Use context manager for span and generation
             with langfuse.start_as_current_span(
@@ -49,7 +54,7 @@ class LLMProvider(ABC):
                     "model": self.model,
                     "temperature": self.temperature,
                 },
-            ) as span:
+            ) as _span:
                 with langfuse.start_as_current_generation(
                     name=f"{self.provider_name}_completion",
                     model=self.model,
@@ -96,9 +101,9 @@ class LLMProvider(ABC):
                     }
                 )
             return {"transactions": output}
-        except:
+        except Exception as e:
             logger.error(f"No JSON found in response: {response}")
-            raise ValueError("No JSON found in response")
+            raise ValueError("No JSON found in response") from e
         # try:
         #     # Try to parse the response directly as JSON
         #     return json.loads(response)
