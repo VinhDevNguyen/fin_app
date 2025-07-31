@@ -1,13 +1,19 @@
 from __future__ import annotations
+
 from typing import Literal
+
 from pydantic import BaseModel
-from services.pdf_extractor import PDFExtractor
-from infrastructure.pdf_extractor.pymupdf_extractor import PyMuPDFExtractor
+
 from infrastructure.pdf_extractor.pdfminer_extractor import PDFMinerExtractor
+from infrastructure.pdf_extractor.pymupdf_extractor import PyMuPDFExtractor
+from services.pdf_extractor import PDFExtractor
+
 
 class Settings(BaseModel):
     """Settings for PDF extraction engine selection."""
+
     pdf_engine: Literal["pymupdf", "pdfminer"] = "pymupdf"
+
 
 def make_pdf_extractor(settings: Settings) -> PDFExtractor:
     """Factory function to create PDF extractor based on settings."""

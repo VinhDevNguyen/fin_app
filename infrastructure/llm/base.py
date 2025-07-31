@@ -1,106 +1,162 @@
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional, Union, Literal, List
 import json
-from pathlib import Path
-from pydantic import BaseModel, Field
 import logging
+from abc import ABC, abstractmethod
 from datetime import datetime
-from .prompt_manager import PromptManager
+from pathlib import Path
+from typing import Any, Literal, Optional, Union
+
+from pydantic import BaseModel, Field
+
 from .langfuse_wrapper import LangfuseWrapper
+from .prompt_manager import PromptManager
 
 logger = logging.getLogger(__name__)
+
+
 class TransactionEntry(BaseModel):
     transaction_date: datetime
     transaction_detail: str
     amount: str
     currency: str
-    category: Literal["Income", "Housing", "Transportation", "Food & Dining", "Personal Care & Health", "Entertainment & Lifestyle", "Education & Development", "Debt & Loans", "Children/Dependents", "Miscellaneous/Other"]
-    service_subscription: Optional[str] = Field(default = None, description = "Services like Netflix, Spotify, ...")
+    category: Literal[
+        "Income",
+        "Housing",
+        "Transportation",
+        "Food & Dining",
+        "Personal Care & Health",
+        "Entertainment & Lifestyle",
+        "Education & Development",
+        "Debt & Loans",
+        "Children/Dependents",
+        "Miscellaneous/Other",
+    ]
+    service_subscription: Optional[str] = Field(
+        default=None, description="Services like Netflix, Spotify, ..."
+    )
     receiver_name: Optional[str]
 
+
 class TransactionHistory(BaseModel):
-    transactions: List[TransactionEntry]
+    transactions: list[TransactionEntry]
+
 
 class LLMProvider(ABC):
     """Base class for LLM providers."""
-    
-    def __init__(self):
+
+    def __init__(self) -> None:
         self.provider_name = "unknown"
         self.model = "unknown"
         self.temperature = 0.0
-    
+
     @abstractmethod
-    def create_prompt(self, system_prompt: str, user_content: str) -> Dict[str, Any]:
+    def create_prompt(self, system_prompt: str, user_content: str) -> dict[str, Any]:
         """Create prompt structure for the LLM."""
         pass
-    
+
     @abstractmethod
-    def send_prompt(self, prompt: Dict[str, Any]) -> str:
+    def send_prompt(self, prompt: dict[str, Any]) -> str:
         """Send prompt to LLM and get response."""
         pass
-    
-    def _send_prompt_with_tracing(self, prompt: Dict[str, Any], trace_name: str) -> str:
+
+    def _send_prompt_with_tracing(self, prompt: dict[str, Any], trace_name: str) -> str:
         """Wrapper method to add Langfuse tracing to prompt sending."""
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
-            
-            # Use context manager for span and generation
-            with langfuse.start_as_current_span(
-                name=trace_name,
-                metadata={
-                    "provider": self.provider_name,
-                    "model": self.model,
-                    "temperature": self.temperature
-                }
-            ) as span:
-                with langfuse.start_as_current_generation(
-                    name=f"{self.provider_name}_completion",
-                    model=self.model,
-                    input=prompt,
-                    model_parameters={
-                        "temperature": self.temperature,
-                        "response_format": "json_object"
-                    }
-                ) as generation:
-                    try:
-                        # Call the actual send_prompt method
-                        response = self.send_prompt(prompt)
-                        
-                        # Update the generation with the output
-                        generation.update(output=response)
-                        
-                        return response
-                    except Exception as e:
-                        # Log the error to Langfuse
-                        generation.update(
-                            level="ERROR",
-                            status_message=str(e)
-                        )
-                        raise
+
+            if langfuse is not None:
+                # Use context manager for span and generation
+                with langfuse.start_as_current_span(
+                    name=trace_name,
+                    metadata={
+                        "provider": self.provider_name,
+                        "model": self.model,
+                        "temperature": str(self.temperature),
+                    },
+                ) as _:
+                    with langfuse.start_as_current_generation(
+                        name=f"{self.provider_name}_completion",
+                        model=self.model,
+                        input=prompt,
+                        model_parameters={
+                            "temperature": str(self.temperature),
+                            "response_format": "json_object",
+                        },
+                    ) as generation:
+                        try:
+                            # Call the actual send_prompt method
+                            response = self.send_prompt(prompt)
+
+                            # Update the generation with the output
+                            generation.update(output=response)
+
+                            return response
+                        except Exception as e:
+                            # Log the error to Langfuse
+                            generation.update(level="ERROR", status_message=str(e))
+                            raise
+            else:
+                # If langfuse instance is None, just call the method directly
+                return self.send_prompt(prompt)
         else:
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt)
-    
-    def extract_json_from_response(self, response: list[TransactionEntry]) -> Dict[str, Any]:
+
+    def extract_json_from_response(
+        self, response: Union[str, list[TransactionEntry]]
+    ) -> dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
-            output = []
-            for transaction in response:
-                output.append({
-                    "transaction_date": transaction.transaction_date.strftime("%Y-%m-%d %H:%M:%S"),
-                    "transaction_detail": transaction.transaction_detail,
-                    "amount": transaction.amount,
-                    "currency": transaction.currency,
-                    "category": transaction.category,
-                    "receiver": transaction.receiver_name,
-                    "service_subscription": transaction.service_subscription
-                })
-            return {
-                "transactions": output
-            }
-        except:
-            logger.error(f"No JSON found in response: {response}")
-            raise ValueError("No JSON found in response")
+            # If response is already a list of TransactionEntry objects
+            if isinstance(response, list) and all(
+                isinstance(item, TransactionEntry) for item in response
+            ):
+                output = []
+                for transaction in response:
+                    output.append(
+                        {
+                            "transaction_date": transaction.transaction_date.strftime(
+                                "%Y-%m-%d %H:%M:%S"
+                            ),
+                            "transaction_detail": transaction.transaction_detail,
+                            "amount": transaction.amount,
+                            "currency": transaction.currency,
+                            "category": transaction.category,
+                            "receiver": transaction.receiver_name,
+                            "service_subscription": transaction.service_subscription,
+                        }
+                    )
+                return {"transactions": output}
+            # If response is a string, try to parse it as JSON
+            elif isinstance(response, str):
+                try:
+                    # Try to parse the response directly as JSON
+                    result: Any = json.loads(response)
+                    return dict(result)
+                except json.JSONDecodeError:
+                    # If direct parsing fails, try to find JSON in the response
+                    import re
+
+                    json_pattern = r"\[[\s\S]*\]"
+                    match = re.search(json_pattern, response)
+                    if match:
+                        try:
+                            match_result: Any = json.loads(match.group())
+                            return dict(match_result)
+                        except json.JSONDecodeError as e:
+                            logger.error(
+                                f"Failed to parse JSON from response: {response}"
+                            )
+                            raise ValueError(
+                                "Could not extract valid JSON from response"
+                            ) from e
+                    else:
+                        logger.error(f"No JSON found in response: {response}")
+                        raise ValueError("No JSON found in response") from None
+            else:
+                raise ValueError(f"Unsupported response type: {type(response)}")
+        except Exception as e:
+            logger.error(f"Error processing response: {response}")
+            raise ValueError("Error processing response") from e
         # try:
         #     # Try to parse the response directly as JSON
         #     return json.loads(response)
@@ -118,23 +174,23 @@ class LLMProvider(ABC):
         #     else:
         #         logger.error(f"No JSON found in response: {response}")
         #         raise ValueError("No JSON found in response")
-    
-    def save_result(self, result: Dict[str, Any], output_path: Path) -> None:
+
+    def save_result(self, result: dict[str, Any], output_path: Path) -> None:
         """Save result to file."""
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
         logger.info(f"Saved result to {output_path}")
-    
+
     def process_text_file(
-        self, 
-        text_content: str, 
-        system_prompt_or_id: str, 
+        self,
+        text_content: str,
+        system_prompt_or_id: str,
         output_path: Path,
-        use_prompt_library: bool = True
-    ) -> Dict[str, Any]:
+        use_prompt_library: bool = True,
+    ) -> dict[str, Any]:
         """Process text file through LLM and save result.
-        
+
         Args:
             text_content: The text content to process
             system_prompt_or_id: Either a prompt ID from the library or a direct system prompt
@@ -146,13 +202,13 @@ class LLMProvider(ABC):
             system_prompt = prompt_manager.get_prompt(system_prompt_or_id)
         else:
             system_prompt = system_prompt_or_id
-            
+
         prompt = self.create_prompt(system_prompt, text_content)
-        
+
         # Use the tracing wrapper for the LLM call
         trace_name = f"process_file_{output_path.name}"
         response = self._send_prompt_with_tracing(prompt, trace_name)
-        
+
         result = self.extract_json_from_response(response)
         self.save_result(result, output_path)
         return result
