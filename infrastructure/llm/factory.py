@@ -1,11 +1,9 @@
 from typing import Optional
 
 from .base import LLMProvider
-from .openai_provider import OpenAICompatibleProvider
 from .gemini_provider import GeminiProvider
 from .langfuse_wrapper import LangfuseWrapper
-from .openai_provider import OpenAIProvider
-
+from .openai_provider import OpenAICompatibleProvider
 
 
 class LLMFactory:

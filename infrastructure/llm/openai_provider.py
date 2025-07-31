@@ -35,14 +35,16 @@ class OpenAICompatibleProvider(LLMProvider):
             ]
         }
 
-    def send_prompt(self, prompt: Dict[str, Any], output_format = TransactionHistory) -> TransactionHistory:
+    def send_prompt(
+        self, prompt: Dict[str, Any], output_format=TransactionHistory
+    ) -> TransactionHistory:
         """Send prompt to OpenAI and get response."""
         try:
             response = self.client.responses.parse(
                 model=self.model,
                 input=prompt["messages"],
                 temperature=self.temperature,
-                text_format=output_format
+                text_format=output_format,
             )
             return response.output_parsed
         except Exception as e:

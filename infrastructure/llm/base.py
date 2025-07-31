@@ -1,20 +1,21 @@
 import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from .langfuse_wrapper import LangfuseWrapper
-from .pydantic_models.transactions import TransactionHistory, TransactionEntry
+from .prompt_manager import PromptManager
+from .pydantic_models.transactions import TransactionHistory
 
 logger = logging.getLogger(__name__)
 
+
 class LLMProvider(ABC):
     """Base class for LLM providers."""
-    
+
     def __init__(self):
         self.base_url = None
         self.provider_name = "unknown"
@@ -27,23 +28,27 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def send_prompt(self, prompt: Dict[str, Any], output_format: BaseModel) -> TransactionHistory:
+    def send_prompt(
+        self, prompt: dict[str, Any], output_format: BaseModel
+    ) -> TransactionHistory:
         """Send prompt to LLM and get response."""
         pass
-    
-    def _send_prompt_with_tracing(self, prompt: Dict[str, Any], trace_name: str, output_format: BaseModel) -> str:
+
+    def _send_prompt_with_tracing(
+        self, prompt: dict[str, Any], trace_name: str, output_format: BaseModel
+    ) -> str:
         """Wrapper method to add Langfuse tracing to prompt sending."""
         if LangfuseWrapper.is_initialized():
             langfuse = LangfuseWrapper.get_instance()
-            
+
             # Use context manager for span and generation
             with langfuse.start_as_current_span(
                 name=trace_name,
                 metadata={
                     "provider": self.provider_name,
                     "model": self.model,
-                    "temperature": self.temperature
-                }
+                    "temperature": self.temperature,
+                },
             ) as span:
                 with langfuse.start_as_current_generation(
                     name=f"{self.provider_name}_completion",
@@ -51,45 +56,46 @@ class LLMProvider(ABC):
                     input=prompt,
                     model_parameters={
                         "temperature": self.temperature,
-                        "response_format": "json_object"
-                    }
+                        "response_format": "json_object",
+                    },
                 ) as generation:
                     try:
                         # Call the actual send_prompt method
                         response = self.send_prompt(prompt, output_format)
-                        
+
                         # Update the generation with the output
                         generation.update(output=response)
-                        
+
                         return response
                     except Exception as e:
                         # Log the error to Langfuse
-                        generation.update(
-                            level="ERROR",
-                            status_message=str(e)
-                        )
+                        generation.update(level="ERROR", status_message=str(e))
                         raise
         else:
             # If Langfuse is not initialized, just call the method directly
             return self.send_prompt(prompt, output_format)
-    
-    def extract_json_from_response(self, response: TransactionHistory) -> Dict[str, Any]:
+
+    def extract_json_from_response(
+        self, response: TransactionHistory
+    ) -> dict[str, Any]:
         """Extract JSON from LLM response."""
         try:
             output = []
             for transaction in response.transactions:
-                output.append({
-                    "transaction_date": transaction.transaction_date.strftime("%Y-%m-%d %H:%M:%S"),
-                    "transaction_detail": transaction.transaction_detail,
-                    "amount": transaction.amount,
-                    "currency": transaction.currency,
-                    "category": transaction.category,
-                    "receiver": transaction.receiver_name,
-                    "service_subscription": transaction.service_subscription
-                })
-            return {
-                "transactions": output
-            }
+                output.append(
+                    {
+                        "transaction_date": transaction.transaction_date.strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                        "transaction_detail": transaction.transaction_detail,
+                        "amount": transaction.amount,
+                        "currency": transaction.currency,
+                        "category": transaction.category,
+                        "receiver": transaction.receiver_name,
+                        "service_subscription": transaction.service_subscription,
+                    }
+                )
+            return {"transactions": output}
         except:
             logger.error(f"No JSON found in response: {response}")
             raise ValueError("No JSON found in response")
@@ -143,8 +149,10 @@ class LLMProvider(ABC):
 
         # Use the tracing wrapper for the LLM call
         trace_name = f"process_file_{output_path.name}"
-        response = self._send_prompt_with_tracing(prompt, trace_name, TransactionHistory)
-        
+        response = self._send_prompt_with_tracing(
+            prompt, trace_name, TransactionHistory
+        )
+
         result = self.extract_json_from_response(response)
         self.save_result(result, output_path)
         return result

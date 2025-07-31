@@ -4,10 +4,15 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from infrastructure.pdf_extractor.pdfminer_extractor import PDFMinerExtractor
 from infrastructure.pdf_extractor.docling_extractor import DoclingExtractor
+from infrastructure.pdf_extractor.pdfminer_extractor import PDFMinerExtractor
+from infrastructure.pdf_extractor.pymupdf_extractor import PyMuPDFExtractor
+from services.pdf_extractor import PDFExtractor
+
+
 class Settings(BaseModel):
     """Settings for PDF extraction engine selection."""
+
     pdf_engine: Literal["pymupdf", "pdfminer", "docling"] = "pymupdf"
 
 

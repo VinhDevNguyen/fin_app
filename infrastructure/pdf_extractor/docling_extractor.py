@@ -1,12 +1,14 @@
 from __future__ import annotations
+
 import logging
 from io import BytesIO
-from services.pdf_extractor import PDFExtractor
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions, EasyOcrOptions
-from docling.document_converter import DocumentConverter, PdfFormatOption
-from docling.datamodel.base_models import DocumentStream
+
 import fitz
+from docling.datamodel.base_models import DocumentStream, InputFormat
+from docling.datamodel.pipeline_options import EasyOcrOptions, PdfPipelineOptions
+from docling.document_converter import DocumentConverter, PdfFormatOption
+
+from services.pdf_extractor import PDFExtractor
 
 logger = logging.getLogger(__name__)
 

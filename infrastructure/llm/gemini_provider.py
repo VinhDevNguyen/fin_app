@@ -3,6 +3,7 @@ from typing import Any
 
 from google import genai
 from google.genai import types
+
 from .base import LLMProvider
 from .pydantic_models.transactions import TransactionHistory
 
@@ -11,8 +12,14 @@ logger = logging.getLogger(__name__)
 
 class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation."""
-    
-    def __init__(self, base_url: str | None, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0):
+
+    def __init__(
+        self,
+        base_url: str | None,
+        api_key: str,
+        model: str = "gemini-2.5-flash",
+        temperature: float = 0.0,
+    ):
         super().__init__()
         self.base_url = base_url or None
         self.client = genai.Client(api_key=api_key)
@@ -28,8 +35,10 @@ class GeminiProvider(LLMProvider):
             f"{system_prompt}\n\nTransaction Contents Text:\n{user_content}"
         )
         return {"prompt": combined_prompt}
-    
-    def send_prompt(self, prompt: Dict[str, Any], output_format = TransactionHistory) -> TransactionHistory:
+
+    def send_prompt(
+        self, prompt: dict[str, Any], output_format=TransactionHistory
+    ) -> TransactionHistory:
         """Send prompt to Gemini and get response."""
         try:
             response = self.client.models.generate_content(
@@ -38,8 +47,8 @@ class GeminiProvider(LLMProvider):
                 config=types.GenerateContentConfig(
                     temperature=self.temperature,
                     response_mime_type="application/json",  # Force JSON response
-                    response_schema=output_format
-                )
+                    response_schema=output_format,
+                ),
             )
             # Convert the parsed response to JSON string to match base class interface
             if response.parsed and hasattr(response.parsed, "transactions"):

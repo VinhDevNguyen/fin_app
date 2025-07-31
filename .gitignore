@@ -137,7 +137,7 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+uv.lock
 # Project specific
 token.json
 *.pdf
