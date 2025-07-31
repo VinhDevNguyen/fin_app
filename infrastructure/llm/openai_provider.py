@@ -48,6 +48,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 temperature=self.temperature,
                 text_format=output_format,
             )
+            if response.output_parsed is None:
+                raise ValueError("No parsed output received from OpenAI API")
             result: TransactionHistory = response.output_parsed
             return result
         except Exception as e:

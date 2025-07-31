@@ -54,8 +54,11 @@ class GeminiProvider(LLMProvider):
             )
             # Return the parsed response directly as TransactionHistory
             if response.parsed and hasattr(response.parsed, "transactions"):
-                result: TransactionHistory = response.parsed
-                return result
+                if isinstance(response.parsed, TransactionHistory):
+                    return response.parsed
+                else:
+                    # Handle case where parsed is not TransactionHistory
+                    return TransactionHistory(transactions=[])
             else:
                 # Fallback: create empty TransactionHistory if parsing fails
                 return TransactionHistory(transactions=[])

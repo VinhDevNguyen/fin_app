@@ -60,7 +60,7 @@ class LLMProvider(ABC):
                     model=self.model,
                     input=prompt,
                     model_parameters={
-                        "temperature": self.temperature,
+                        "temperature": str(self.temperature),
                         "response_format": "json_object",
                     },
                 ) as generation:

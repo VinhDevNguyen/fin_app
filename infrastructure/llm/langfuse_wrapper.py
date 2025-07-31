@@ -58,13 +58,13 @@ class LangfuseWrapper:
                 return func
 
             @wraps(func)
-            @observe(name=name, capture_input=True, capture_output=True)  # type: ignore[misc]
+            @observe(name=name, capture_input=True, capture_output=True)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 if metadata and cls._instance:
                     cls._instance.update_current_trace(metadata=metadata)
                 return func(*args, **kwargs)
 
-            return wrapper  # type: ignore[no-any-return]
+            return wrapper
 
         return decorator
 
