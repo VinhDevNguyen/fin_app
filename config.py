@@ -21,7 +21,9 @@ class AppSettings(BaseSettings):
     target_folder_name: str = Field(validation_alias="TARGET_FOLDER_NAME")
 
     # PDF processing settings
-    pdf_engine: Literal["pymupdf", "pdfminer"] = Field(validation_alias="PDF_ENGINE")
+    pdf_engine: Literal["pymupdf", "pdfminer", "docling"] = Field(
+        validation_alias="PDF_ENGINE"
+    )
     pdf_password: str | None = Field(None, validation_alias="PDF_PASSWORD")
 
     # Output settings
@@ -34,6 +36,7 @@ class AppSettings(BaseSettings):
     log_level: str = Field(validation_alias="LOG_LEVEL")
 
     # LLM settings
+    llm_base_url: str | None = Field(None, validation_alias="LLM_BASE_URL")
     llm_provider: Literal["openai", "gemini"] = Field(validation_alias="LLM_PROVIDER")
     llm_api_key: str = Field(validation_alias="LLM_API_KEY")
     llm_model: str = Field(validation_alias="LLM_MODEL")

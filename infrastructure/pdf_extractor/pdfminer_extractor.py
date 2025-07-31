@@ -31,10 +31,12 @@ class PDFMinerExtractor(PDFExtractor):
         """
         try:
             # pdfminer.six automatically handles password in extract_text
+            text: str
             if password:
-                return extract_text(BytesIO(pdf_bytes), password=password)
+                text = extract_text(BytesIO(pdf_bytes), password=password)
             else:
-                return extract_text(BytesIO(pdf_bytes))
+                text = extract_text(BytesIO(pdf_bytes))
+            return text
         except Exception as exc:
             logger.exception("PDF extraction failed with pdfminer")
             raise ExtractionError("Failed to extract text from PDF") from exc

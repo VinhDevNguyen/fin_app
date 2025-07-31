@@ -1,10 +1,11 @@
 import logging
-from typing import Any
+from typing import Any, Union
 
 from google import genai
 from google.genai import types
 
-from .base import LLMProvider, TransactionHistory
+from .base import LLMProvider
+from .pydantic_models.transactions import TransactionHistory
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +14,14 @@ class GeminiProvider(LLMProvider):
     """Google Gemini LLM provider implementation."""
 
     def __init__(
-        self, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.0
+        self,
+        base_url: Union[str, None],
+        api_key: str,
+        model: str = "gemini-2.5-flash",
+        temperature: float = 0.0,
     ):
         super().__init__()
-        # Initialize client with API key
+        self.base_url = base_url
         self.client = genai.Client(api_key=api_key)
         self.model = model
         self.temperature = temperature
@@ -31,7 +36,11 @@ class GeminiProvider(LLMProvider):
         )
         return {"prompt": combined_prompt}
 
-    def send_prompt(self, prompt: dict[str, Any]) -> str:
+    def send_prompt(
+        self,
+        prompt: dict[str, Any],
+        output_format: type[TransactionHistory] = TransactionHistory,
+    ) -> TransactionHistory:
         """Send prompt to Gemini and get response."""
         try:
             response = self.client.models.generate_content(
@@ -40,33 +49,19 @@ class GeminiProvider(LLMProvider):
                 config=types.GenerateContentConfig(
                     temperature=self.temperature,
                     response_mime_type="application/json",  # Force JSON response
-                    response_schema=TransactionHistory,
+                    response_schema=output_format,
                 ),
             )
-            # Convert the parsed response to JSON string to match base class interface
+            # Return the parsed response directly as TransactionHistory
             if response.parsed and hasattr(response.parsed, "transactions"):
-                import json
-
-                result = {
-                    "transactions": [
-                        {
-                            "transaction_date": t.transaction_date.strftime(
-                                "%Y-%m-%d %H:%M:%S"
-                            ),
-                            "transaction_detail": t.transaction_detail,
-                            "amount": t.amount,
-                            "currency": t.currency,
-                            "category": t.category,
-                            "receiver_name": t.receiver_name,
-                            "service_subscription": t.service_subscription,
-                        }
-                        for t in response.parsed.transactions
-                    ]
-                }
-                return json.dumps(result)
+                if isinstance(response.parsed, TransactionHistory):
+                    return response.parsed
+                else:
+                    # Handle case where parsed is not TransactionHistory
+                    return TransactionHistory(transactions=[])
             else:
-                # Fallback to text response if parsing fails
-                return response.text or ""
+                # Fallback: create empty TransactionHistory if parsing fails
+                return TransactionHistory(transactions=[])
         except Exception as e:
             logger.error(f"Error calling Gemini API: {str(e)}")
             raise

@@ -50,10 +50,10 @@ class LangfuseWrapper:
     @classmethod
     def trace_llm_call(
         cls, name: str, metadata: Optional[dict[str, Any]] = None
-    ) -> Callable:
+    ) -> Any:
         """Decorator to trace LLM calls with Langfuse."""
 
-        def decorator(func: Callable) -> Callable:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             if not cls._initialized:
                 return func
 

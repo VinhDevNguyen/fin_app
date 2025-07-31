@@ -1,15 +1,13 @@
 from .base import LLMProvider
-from .factory import LLMFactory
 from .gemini_provider import GeminiProvider
 from .langfuse_wrapper import LangfuseWrapper
-from .openai_provider import OpenAIProvider
+from .openai_provider import OpenAICompatibleProvider
 from .prompt_manager import PromptManager
 
 __all__ = [
     "LLMProvider",
-    "OpenAIProvider",
+    "OpenAICompatibleProvider",
     "GeminiProvider",
-    "LLMFactory",
     "PromptManager",
     "LangfuseWrapper",
 ]
