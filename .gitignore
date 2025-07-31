@@ -144,6 +144,7 @@ token.json
 downloads/
 .pytest_cache/
 processed_statements/
+llm_output/
 
 # Ignore credentials
 credentials.json
