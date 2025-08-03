@@ -87,6 +87,7 @@ class StatementProcessor:
             )
 
         return LLMFactory.create_provider(
+            base_url=app_settings.llm_base_url,
             provider_type=app_settings.llm_provider,
             api_key=app_settings.llm_api_key,
             model=app_settings.llm_model,

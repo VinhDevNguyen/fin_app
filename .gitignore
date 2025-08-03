@@ -137,13 +137,14 @@ dmypy.json
 .Trashes
 ehthumbs.db
 Thumbs.db
-
+uv.lock
 # Project specific
 token.json
 *.pdf
 downloads/
 .pytest_cache/
 processed_statements/
+llm_output/
 
 # Ignore credentials
 credentials.json
