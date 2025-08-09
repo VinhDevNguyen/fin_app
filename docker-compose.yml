@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:14.18
+    container_name: pg_db
+    restart: always
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pg_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    networks:
+      - pg_network
+    depends_on:
+      - postgres
+
+  postgres-mcp-pro:
+    image: crystaldba/postgres-mcp:latest
+    container_name: pg_mcp_pro
+    restart: on-failure
+    environment:
+      DATABASE_URI: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}
+      ACCESS_MODE: unrestricted
+    command: ["--access-mode=unrestricted", "--transport=sse"]
+    ports:
+      - "8000:8000"
+    networks:
+      - pg_network
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:
+
+networks:
+  pg_network:
+    driver: bridge

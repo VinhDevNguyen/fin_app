@@ -11,12 +11,15 @@ Main script to process bank statements from Google Drive:
 import logging
 import os
 from pathlib import Path
-
+from typing import Tuple
 from config import app_settings
 from infrastructure.gdrive.drive_gateway import DriveFile
 from infrastructure.gdrive.google_drive_gateway import GoogleDriveGateway
-from infrastructure.llm import LLMFactory
+from infrastructure.llm.factory import LLMFactory
+from infrastructure.database.database_manager import DatabaseManager
+from infrastructure.llm.pydantic_models.transactions import TransactionHistory
 from services.factory import Settings, make_pdf_extractor
+import asyncio
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +48,7 @@ class StatementProcessor:
         self.drive_gateway = self._init_drive_gateway()
         self.pdf_extractor = self._init_pdf_extractor()
         self.llm_provider = self._init_llm_provider()
+        self.database_manager = self._init_database_manager()
 
     def _init_drive_gateway(self) -> GoogleDriveGateway:
         """Initialize Google Drive gateway."""
@@ -67,6 +71,16 @@ class StatementProcessor:
                     "Service account key path is required when using service account authentication"
                 )
             return GoogleDriveGateway.from_service_account(app_settings.gdrive_sa_key)
+
+    def _init_database_manager(self):
+        db_manager = DatabaseManager()
+        db_manager.set_strategy(
+            strategy_name=app_settings.db_strategy,
+            connection_string=f"postgresql://{app_settings.db_user}:{app_settings.db_password}@{app_settings.db_host}:{app_settings.db_port}/{app_settings.db_name}",
+        )
+        asyncio.run(db_manager.initialize())
+
+        return db_manager
 
     def _init_pdf_extractor(self):
         """Initialize PDF extractor."""
@@ -193,7 +207,9 @@ class StatementProcessor:
         logger.info(f"💾 Saved text: {text_path}")
         return text_path
 
-    def process_with_llm(self, text: str, file_name: str) -> Path:
+    def process_with_llm(
+        self, text: str, file_name: str
+    ) -> Tuple[TransactionHistory, Path]:
         """Process text with LLM to extract structured transaction data."""
         # Create JSON filename (replace .pdf with .json)
         json_filename = file_name.replace(".pdf", ".json")
@@ -203,14 +219,14 @@ class StatementProcessor:
 
         try:
             # Process text with LLM using prompt ID from config
-            self.llm_provider.process_text_file(
+            response, _ = self.llm_provider.process_text_file(
                 text_content=text,
                 system_prompt_or_id=app_settings.llm_prompt_id,
                 output_path=json_path,
                 use_prompt_library=True,
             )
             logger.info(f"✅ LLM processing complete: {json_path}")
-            return json_path
+            return response, json_path
         except Exception as e:
             logger.error(f"❌ LLM processing failed for {file_name}: {e}")
             raise
@@ -244,8 +260,13 @@ class StatementProcessor:
             result["text_path"] = str(text_path)
 
             # Process with LLM
-            json_path = self.process_with_llm(text, file.name)
+            response, json_path = self.process_with_llm(text, file.name)
             result["json_path"] = str(json_path)
+
+            # Add transactions to DB
+            for transaction in response.transactions:
+                self.database_manager.add_transaction_sync(transaction)
+                logger.info(f"Added transaction: {transaction}")
 
             result["success"] = True
             logger.info(f"✅ Successfully processed: {file.name}")

@@ -26,6 +26,14 @@ class AppSettings(BaseSettings):
     )
     pdf_password: str | None = Field(None, validation_alias="PDF_PASSWORD")
 
+    # Database settings
+    db_strategy: Literal["postgres"] = Field(validation_alias="DB_STRATEGY")
+    db_user: str = Field(validation_alias="DB_USER")
+    db_password: str = Field(validation_alias="DB_PASSWORD")
+    db_host: str = Field(validation_alias="DB_HOST")
+    db_port: str = Field(validation_alias="DB_PORT")
+    db_name: str = Field(validation_alias="DB_NAME")
+
     # Output settings
     output_dir: str = Field(validation_alias="OUTPUT_DIR")
     max_files: int | None = Field(

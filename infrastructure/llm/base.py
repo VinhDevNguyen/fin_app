@@ -2,7 +2,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Tuple
 
 from .langfuse_wrapper import LangfuseWrapper
 from .prompt_manager import PromptManager
@@ -135,7 +135,7 @@ class LLMProvider(ABC):
         system_prompt_or_id: str,
         output_path: Path,
         use_prompt_library: bool = True,
-    ) -> dict[str, Any]:
+    ) -> Tuple[TransactionHistory, dict[str, Any]]:
         """Process text file through LLM and save result.
 
         Args:
@@ -160,4 +160,4 @@ class LLMProvider(ABC):
 
         result = self.extract_json_from_response(response)
         self.save_result(result, output_path)
-        return result
+        return response, result
