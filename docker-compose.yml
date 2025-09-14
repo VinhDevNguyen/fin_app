@@ -12,7 +12,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5434:5432"
     networks:
       - pg_network
 
@@ -24,7 +24,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "8080:80"
+      - "8082:80"
     networks:
       - pg_network
     depends_on:
@@ -39,11 +39,25 @@ services:
       ACCESS_MODE: unrestricted
     command: ["--access-mode=unrestricted", "--transport=sse"]
     ports:
-      - "8000:8000"
+      - "8002:8000"
     networks:
       - pg_network
     depends_on:
       - postgres
+  
+  response-api-service:
+    build: .
+    env_file:
+      - .env
+    container_name: response-api-service
+    ports:
+      - "10002:8000"
+    restart: unless-stopped
+    volumes:
+      - .:/app/
+    networks:
+      - pg_network
+  
 
 volumes:
   pgdata:
