@@ -83,10 +83,13 @@ class OpenAIResponseClient(ResponseClient):
                 system_prompt, chat_history, user_prompt
             )
 
+            logger.info(f"Connecting to {len(mcp_servers)} MCP servers")
             async with AsyncExitStack() as stack:
                 servers = [MCPServerSse(params=MCPServerSseParams(url=mcp_server["url"])) for mcp_server in mcp_servers]
+                logger.info(f"Created MCP server objects: {len(servers)}")
 
                 live_servers = [await stack.enter_async_context(server) for server in servers]
+                logger.info(f"Connected to MCP servers: {len(live_servers)}")
 
                 agent = Agent(
                     name="base_agent",
@@ -94,8 +97,10 @@ class OpenAIResponseClient(ResponseClient):
                     model=self.completion_model,
                     mcp_servers=live_servers,
                 )
+                logger.info("Agent created with MCP servers")
 
-            response = await Runner.run(starting_agent=agent, input=input["messages"])
+                response = await Runner.run(starting_agent=agent, input=input["messages"])
+                logger.info("Runner completed")
 
             return {"response": response.final_output}
         # tools = []
